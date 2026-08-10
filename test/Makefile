@@ -13,6 +13,8 @@ ifneq ($(GATES),yes)
 # RTL simulation:
 SIM_BUILD				= sim_build/rtl
 VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
+# Test-only behavioral models of the sky130 cells the emitted RTL instantiates
+VERILOG_SOURCES += $(PWD)/sky130_models.v
 
 else
 
