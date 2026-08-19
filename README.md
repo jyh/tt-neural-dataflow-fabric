@@ -1,42 +1,68 @@
-![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
+# NDF — a bit-serial neural dataflow fabric (TinyTapeout, ttsky26c)
 
-# Tiny Tapeout Verilog Project Template
+MAC cells on a self-routing banyan switch, with a small byte-phase processor beside
+them sharing the same 24 pins. Six-by-two tiles.
 
-- [Read the documentation for project](docs/info.md)
+**Each MAC cell is generated from a Lean model proved correct in the Lean kernel,
+and the generated netlist is then proved equivalent to its arithmetic specification
+over all inputs by SAT.** The signed accumulation is proved for the drive schedule
+the design specifies. **The sequencer that produces that schedule, the pin wrapper
+and the fabric glue are hand-written RTL and are not part of either proof** — the
+project's claim is precise about which layer it means, and so is this file.
 
-## What is Tiny Tapeout?
+The datasheet is `docs/info.md`. The pin map, tile count and source list are in
+`info.yaml`.
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital and analog designs manufactured on a real chip.
+## ⛔ THIS IS NOT A SUBMITTABLE TREE YET, AND THE TOOLING SAYS SO RATHER THAN THIS FILE
 
-To learn more and get started, visit https://tinytapeout.com.
+`assemble.sh` **exits 3** and names what is missing. That is deliberate: an
+incomplete tree must not exit 0, because a caller that reads only the exit code
+would otherwise ship it.
 
-## Set up your Verilog project
+```
+present   info.yaml · src/config.json · docs/info.md · README.md · assemble.sh
+missing   test/   — a cocotb bench (see below: blocked, not merely unwritten)
+derived   src/*.v — copied from SaltWorks/Silicon/RTL/ by assemble.sh, never
+                    committed here
+```
 
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
+**Why the RTL is derived and not checked in:** it lives in one place, because that
+is the source both the Lean equivalence proof and `Flow/synth.sh` read. A second
+committed copy is a copy a human maintains, and a copy a human maintains drifts.
 
-The GitHub action will automatically build the ASIC files using [LibreLane](https://www.zerotoasiccourse.com/terminology/librelane/).
+**Why the bench is blocked rather than lazy:** a testbench binds `PROJECT_SOURCES`,
+which must agree with `source_files`, which follows `top_module` — and which top
+ships is not yet ruled. A bench written against the wrong top is wasted twice.
 
-## Enable GitHub actions to build the results page
+## Building the submission tree
 
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+```sh
+./assemble.sh <target-dir>     # refuses first, copies second
+```
 
-## Resources
+It runs `docs/silicon-tools/manifest_check.sh` and **consumes its exit status**: if
+`source_files` is not exactly the transitive closure of `top_module`, nothing is
+copied. That gate exists because `info.yaml` said in its own comments that *nothing*
+checked this agreement — and a comment saying nothing checks this is a defect report
+addressed to nobody. It is checked now.
 
-- [FAQ](https://tinytapeout.com/faq/)
-- [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
-- [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://www.tinytapeout.com/guides/local-hardening/)
+`.github/workflows/`, `.devcontainer/`, `.vscode/` and `LICENSE` come from
+TinyTapeout's template repo verbatim and must not be hand-written: create the repo
+**from** the template, then run `assemble.sh` over it.
 
-## What next?
+## Layout receipts
 
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@tinytapeout](https://twitter.com/tinytapeout)
-  - Bluesky [@tinytapeout.com](https://bsky.app/profile/tinytapeout.com)
+There are none yet, and none will be produced locally. `Flow/synth.sh` pins PDK
+revision `c6d73a35…`; TinyTapeout hardens against `8afc8346…`. Those two revisions
+are byte-identical in `lib/` and `verilog/` — so **cell areas, and therefore the
+synthesis numbers, do not depend on the choice** — but they differ in all 893
+`sky130_fd_sc_hd` files under `mag/`, `maglef/`, `gds/` and `spice/`, which is
+exactly what DRC and LVS consume. A local run would be a receipt for something that
+is not what ships. The venue is TinyTapeout's own CI.
+
+Reasoning in full: `docs/silicon-rungzero-layout-venue-0818.md` in the repo root.
+
+## The other submission
+
+`../TT/` is a **different** TinyTapeout project and is untouched by anything here.
+This directory exists precisely so that this one never borrows its manifest.
