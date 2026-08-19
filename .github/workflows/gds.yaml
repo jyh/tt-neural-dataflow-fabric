@@ -2,10 +2,6 @@ name: gds
 
 on:
   push:
-    # TEMPORARY (silicon 2026-08-19): the test-first ruling needs `test` to run
-    # in isolation, and every workflow here fires on bare `push:`. Restored
-    # BYTE-VERBATIM in the very next commit. Idiom copied from fpga.yaml.
-    branches: none
   workflow_dispatch:
 
 jobs:
