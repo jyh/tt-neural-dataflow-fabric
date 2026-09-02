@@ -18,9 +18,19 @@
   "//": "PL_TARGET_DENSITY_PCT - raise if Global Placement fails with GPL-0302.",
   "PL_TARGET_DENSITY_PCT": 60,
 
-  "//": "Hold slack margins, TT defaults.",
-  "PL_RESIZER_HOLD_SLACK_MARGIN": 0.1,
-  "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.05,
+  "//": "ndf-2a (2026-09-02 resubmission): the accepted configuration 1d+2a, measured 2026-08-27",
+  "//": "against a bit-exact local reproduction of the 08-19 signoff (saltworks",
+  "//": "docs/silicon-ndf-pair-results-0827.md, docs/silicon-runs-0827/config-ndf-2a.json).",
+  "//": "EXACTLY FOUR keys differ from the 08-19 submission: the two hold margins below,",
+  "//": "RSZ_CORNERS, and CTS_SINK_CLUSTERING_SIZE. Nothing else moved; the RTL is unchanged.",
+  "//": "Hold slack margins: 1d (were the TT defaults 0.1 / 0.05).",
+  "PL_RESIZER_HOLD_SLACK_MARGIN": 0.45,
+  "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.3,
+
+  "//": "1d: resize against the ss corners as well as nom_tt (was: nom_tt only).",
+  "RSZ_CORNERS": ["nom_tt_025C_1v80", "max_ss_100C_1v60", "nom_ss_100C_1v60", "min_ss_100C_1v60"],
+  "//": "2a: clock-tree sink clustering at 10 closes all 111 clock-leaf max-fanout violators.",
+  "CTS_SINK_CLUSTERING_SIZE": 10,
 
   "RUN_LINTER": 1,
   "LINTER_INCLUDE_PDK_MODELS": 1,
