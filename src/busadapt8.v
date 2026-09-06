@@ -78,6 +78,28 @@ module busadapt8(clk, rst_n, sof,
     reg       store_beat; // 0 = address loop, 1 = the store's data loop
     wire      loop_end = (phase == 2'd3);
 
+    // ⭐⭐ SHAPE (B) — `fetch_owed`. Landed 2026-09-06 on two technical signatures
+    // (silicon: shape; compiler: DriveMap, salt `e1b5957`). Between a MEMORY
+    // instruction's retire and the assembly of the next instruction word, `c_instr`
+    // is `instr_r` — the instruction that just retired — so the `sof` arm below was
+    // re-deriving `kind` from a STALE decode and re-issuing a completed transaction,
+    // destroying the instruction being fetched. `fetch_owed` names that window: while
+    // it is high there is nothing to re-derive from, so the only correct `kind` is
+    // T_FETCH. The clear is `instr_avail` and not the next `loop_end` because the
+    // INSTRUCTION BYPASS presents the new word at exactly `kind==T_FETCH && phase==3`,
+    // where re-deriving is CORRECT and must stay permitted.
+    // Measured on this exact source by Sim/reghost/run_sof_repair_verify.sh.
+    reg       fetch_owed;
+    wire      instr_avail  = (kind == T_FETCH) && (phase == 2'd3);
+    wire      stale_decode = fetch_owed && !instr_avail;
+
+    always @(posedge clk)
+        if (!rst_n)                    fetch_owed <= 1'b0;
+        else if (instr_avail)          fetch_owed <= 1'b0;
+        else if (loop_end && retire &&
+                 (kind == T_STORE || kind == T_LOAD))
+                                       fetch_owed <= 1'b1;
+
     // ⛔ MID-LOOP `sof` TRUNCATION — the executor's residual (1), and it was REAL.
     // `sof` forced `phase` to 0 at ANY cycle while `kind`/`store_beat` only updated at
     // loop_end, so a mid-loop realign left the FRAME restarted and the TRANSACTION
@@ -133,7 +155,11 @@ module busadapt8(clk, rst_n, sof,
         if (!rst_n) begin kind <= T_FETCH; store_beat <= 1'b0; end
         else if (sof) begin
             store_beat <= 1'b0;
-            kind <= c_dmem_req ? (c_dmem_we ? T_STORE : T_LOAD) : T_FETCH;
+            // ⭐ SHAPE (B): while a fetch is owed the decode in front of us belongs to
+            // the instruction that just retired; T_FETCH by construction, not by luck.
+            kind <= (!stale_decode && c_dmem_req)
+                      ? (c_dmem_we ? T_STORE : T_LOAD)
+                      : T_FETCH;
         end
         else if (loop_end) begin
             if (retire) begin
