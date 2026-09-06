@@ -27,10 +27,18 @@ payload. `sof` (on `uio_in[6]`) realigns every counter in the design to frame ze
 so a host that loses sync recovers by pulsing one pin. A realign **truncates
 whatever frame is in flight** — an in-progress memory transaction is restarted
 and a partial fetch loop is discarded — so it costs forward progress and is not
-a no-op. Repeated resynchronisation is measurably slower: fourteen realigns cost
-one load and one store of progress over a fixed window. It does **not** corrupt
-execution: a pulse at any arrival cycle leaves the executed instruction and
-completed-store counts identical to no pulse at all.
+a no-op.
+
+What that means in practice, and the two cases differ:
+
+- **One resync does not corrupt anything, but costs you the frame in flight.**
+  Swept one pulse per run across every arrival cycle of the reference program, the
+  executed-instruction and completed-store counts are identical to no pulse at all.
+- **Repeated resyncs cost measurable progress.** Fourteen realigns in a single run
+  leave the program one load and one store further behind over a fixed window.
+
+Both are measurements of the same design; they differ in how many pulses the run
+contains, not in what a pulse does.
 
 **The computation.** A 22-frame timetable drives a **2-2-1 schedule**: three cells
 compute two hidden units and one output. Cells 0–2 carry the demo; cell 3 is
@@ -71,12 +79,20 @@ agree on **where** frame zero is.
 That is a statement about alignment and not about safety, and the two were
 conflated in an earlier revision of this page. **When** a realign is harmless is a
 separate property: until the `fetch_owed` repair in `busadapt8.v`, asserting `sof`
-during the fetch loop that follows a completed load or store re-issued that
-completed transaction and destroyed the instruction being fetched, on three of
-every four cycles — 16 of 121 steady-state arrival cycles in the reference program.
-The repair removes it by construction: while a fetch is owed there is no resident
-instruction to re-derive from, so the only correct action is to fetch. Measured
-after the repair, 0 of 260 arrival cycles across the whole run.
+at a completed load or store's retiring edge, or during the first three cycles of
+the fetch loop that follows it, re-issued that completed transaction and destroyed
+the instruction being fetched. Four cycles per memory instruction; the fourth cycle
+of the fetch loop was already safe.
+
+Measured on **this** design, sweeping one pulse per run across the steady-state
+window: **20 of 121 arrival cycles re-issued a completed store before the repair,
+0 of 121 after**, and 0 of 260 over the whole run including bring-up. (The 121- and
+260-cycle windows are different populations and are given separately rather than as
+one improving ratio.)
+
+The repair removes the defect by construction rather than by which cycle a pulse
+lands on: while a fetch is owed there is no resident instruction to re-derive from,
+so the only correct action is to fetch.
 
 **Drive an edge.** Present serial data on `uio_in[2]` (`edge_in_dat`) with
 `uio_in[3]` as its valid. Results emerge on `uio_out[4]` (`edge_out_dat`) with
