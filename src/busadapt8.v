@@ -23,6 +23,11 @@
 // NDF top already routes `uio_in[6]` to `sof` for the fabric, so the pin exists and
 // the wire is free to fan out — no pin cost, and the two consumers cannot disagree
 // about frame start because they read the same net.
+// ⛔ FENCE, ADDED 2026-09-06: that sentence is about WHERE frame zero is. It does NOT
+// extend to WHEN a realign is harmless — a distinct property, and quoting this line
+// outward as if it covered both is how the datasheet came to tell a host that mid-run
+// resync was free. The `sof`-during-a-fetch-owed window is handled by `fetch_owed`
+// below, not by this decision.
 //
 // ── DECISION 3 · THE PHASE COUNTER FREE-RUNS ───────────────────────────────────
 // FATAL: "the gate-level bench asserts `phase_o` increments mod 4 EVERY cycle,

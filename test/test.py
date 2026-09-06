@@ -86,9 +86,16 @@ async def test_phase_pins_show_phase_outside_phase_zero(dut):
 async def test_sof_realigns_the_frame(dut):
     """`sof` (uio_in[6]) forces every counter in the design to frame zero.
 
-    GROUNDED: one net feeds the sequencer, the fabric and the core's phase counter,
-    which is why they cannot disagree about where a frame begins — and busadapt8's
-    reset/sof arm is exercised by the tracked adapter bench.
+    SCOPE, STATED BECAUSE THIS TEST'S GREEN IS EASY TO OVER-READ: it pulses `sof`
+    three cycles after boot — before any memory instruction has retired — and asserts
+    only that the phase pins land at a frame start. It checks ALIGNMENT, not
+    transaction accounting, and it does not exercise the `fetch_owed` window at all.
+    That window is covered by the tracked adapter bench (Sim/reghost), not here.
+
+    One net feeds the sequencer, the fabric and the core's phase counter, so they
+    agree on WHERE frame zero is. That is alignment and not safety: WHEN a realign is
+    harmless is a separate property, and the two were conflated in an earlier revision
+    of the datasheet.
     """
     await _boot(dut)
     await ClockCycles(dut.clk, 3)

@@ -86,7 +86,8 @@ of the fetch loop was already safe.
 
 Measured on **this** design, sweeping one pulse per run across the steady-state
 window: **20 of 121 arrival cycles re-issued a completed store before the repair,
-0 of 121 after**, and 0 of 260 over the whole run including bring-up. (The 121- and
+0 of 121 after**. Over the whole run including bring-up the same comparison is **36 of 260
+before, 0 of 260 after**. (The 121- and
 260-cycle windows are different populations and are given separately rather than as
 one improving ratio.)
 
@@ -140,13 +141,13 @@ submission; `info.yaml`, the pinout, the 55 ns clock and the 6x2 tile are unchan
 
 ```
                               08-19 submission      this bundle
-max_fanout violators                    117                1
+max_fanout violators                    117                3
    clock-tree leaves                    111                0
-   datapath                               6                1     wire695/X, fanout 11
-max_slew violators                     3317              825
-max_cap violators                        27                5
-setup worst slack (55 ns period)   +5.668 ns        +7.859 ns
-hold worst slack                   +0.111 ns        +0.198 ns
+   datapath                               6                3     fanout 12, 12, 11
+max_slew violators                     3317             1051
+max_cap violators                        27               13
+setup worst slack (55 ns period)   +5.668 ns        +8.023 ns
+hold worst slack                   +0.111 ns        +0.190 ns
 setup / hold TNS                       0 / 0            0 / 0
 DRC · LVS · antenna                    0 / 0 / 0        0 / 0 / 0
 ```
@@ -155,16 +156,28 @@ The 08-19 column is the shuttle's own signoff for run 32284710003, reproduced lo
 bit-exactly (all 320 shared metrics identical) before the four keys were changed, so the
 delta is measured against the fabricated baseline and not against an approximation of it.
 
-**The one remaining violator, and why it is accepted.** `wire695` is a resizer-inserted
-datapath buffer at fanout 11 against a limit of 10. Its slack is absorbed: setup closes with
-+7.859 ns of margin on a 55 ns period and hold with +0.198 ns, TNS 0.0, in every corner. A
-datapath net one over the limit costs transition time on one combinational path that has that
-margin to spend. A clock-tree leaf over the limit is a different object — it lands on skew and
-insertion delay for every flop beneath it — which is why the 08-19 design's 111 clock-leaf
-violators were the thing worth fixing, and `CTS_SINK_CLUSTERING_SIZE = 10` removes all 111.
-The datapath remainder is placement-dependent and moves between runs; the council of
-2026-08-28 accepted *at most one datapath violator at fanout 11–12, zero clock-leaf* as the
-criterion for this configuration, and this bundle meets it.
+**The three accepted violators, and why they are accepted.** All three are resizer-inserted
+**datapath** buffers, at fanout 12, 12 and 11 against a limit of 10. **None is a clock-tree
+leaf**, verified from this bundle's own gate-level netlist: every load on all three is a
+combinational cell input, and no flop clock pin is driven by any of them. Their slack is
+absorbed: setup closes with +8.023 ns of margin on a 55 ns period and hold with +0.190 ns,
+TNS 0.0, in every corner — and setup slack **improved** at all nine corners against the
+08-19 configuration. A datapath net one or two over the limit costs transition time on
+combinational paths that have that margin to spend. A clock-tree leaf over the limit is a
+different object — it lands on skew and insertion delay for every flop beneath it — which is
+why the 08-19 design's 111 clock-leaf violators were the thing worth fixing, and
+`CTS_SINK_CLUSTERING_SIZE = 10` removes all 111.
+
+**The count changed with this bundle, and it is attributable.** The 2026-08-28 council accepted
+*at most one datapath violator at fanout 11–12, zero clock-leaf* as the criterion for this
+configuration. This bundle reports three. Measured, not assumed: the previous configuration's
+RTL re-hardened under this bundle's own toolchain reproduces its earlier signoff on **all 322
+metrics**, so the increase is caused by the `fetch_owed` repair in `busadapt8.v` and not by the
+build environment. The repair's own net is fanout 1; the additional violators are a placement
+consequence of one added flip-flop, not a fanout its logic demands. On **2026-09-06 the count
+clause was amended to at most three datapath violators in the 11–12 band, zero clock-leaf
+unchanged**, and this bundle meets the amended criterion. The zero-clock-leaf clause — the one
+that section calls the serious one — was never at issue.
 
 **Why the previous bundle carried no such note.** The 08-19 submission documents the design
 as fabricated, in which `wire695` does not exist and the fanout count is 117. A note naming
