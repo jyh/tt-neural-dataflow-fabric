@@ -24,7 +24,13 @@ schedules the traffic.
 **The frame.** Time is divided into 14-cycle frames. Cycles 0–5 carry the header as
 three `ACT`/address pairs, most-significant bit first; cycles 6–13 carry the
 payload. `sof` (on `uio_in[6]`) realigns every counter in the design to frame zero,
-so a host that loses sync recovers by pulsing one pin.
+so a host that loses sync recovers by pulsing one pin. A realign **truncates
+whatever frame is in flight** — an in-progress memory transaction is restarted
+and a partial fetch loop is discarded — so it costs forward progress and is not
+a no-op. Repeated resynchronisation is measurably slower: fourteen realigns cost
+one load and one store of progress over a fixed window. It does **not** corrupt
+execution: a pulse at any arrival cycle leaves the executed instruction and
+completed-store counts identical to no pulse at all.
 
 **The computation.** A 22-frame timetable drives a **2-2-1 schedule**: three cells
 compute two hidden units and one output. Cells 0–2 carry the demo; cell 3 is
@@ -60,7 +66,17 @@ antenna — it is not a functional demo and not a proof of the whole.
 **Reset, then frame.** Hold `rst_n` low, release it, then pulse `sof` on
 `uio_in[6]`. Every counter in the design returns to frame zero on that pulse — the
 sequencer, the fabric and the core's phase counter all read the same net, so they
-cannot disagree about where a frame begins.
+agree on **where** frame zero is.
+
+That is a statement about alignment and not about safety, and the two were
+conflated in an earlier revision of this page. **When** a realign is harmless is a
+separate property: until the `fetch_owed` repair in `busadapt8.v`, asserting `sof`
+during the fetch loop that follows a completed load or store re-issued that
+completed transaction and destroyed the instruction being fetched, on three of
+every four cycles — 16 of 121 steady-state arrival cycles in the reference program.
+The repair removes it by construction: while a fetch is owed there is no resident
+instruction to re-derive from, so the only correct action is to fetch. Measured
+after the repair, 0 of 260 arrival cycles across the whole run.
 
 **Drive an edge.** Present serial data on `uio_in[2]` (`edge_in_dat`) with
 `uio_in[3]` as its valid. Results emerge on `uio_out[4]` (`edge_out_dat`) with
