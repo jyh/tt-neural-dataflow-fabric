@@ -91,14 +91,25 @@ module busadapt8(clk, rst_n, sof,
     // Measured on this exact source by Sim/reghost/run_sof_repair_verify.sh.
     reg       fetch_owed;
     wire      instr_avail  = (kind == T_FETCH) && (phase == 2'd3);
-    wire      stale_decode = fetch_owed && !instr_avail;
+
+    // ⛔⛔ THE RETIRING EDGE IS INSIDE THE WINDOW, NOT BEFORE IT. `fetch_owed` is SET BY the
+    // memory retire, so it is not yet high AT that edge — a one-cycle hole in the flag's own
+    // timing, at the exact cycle that creates the condition the flag describes. `sof` is
+    // tested BEFORE `loop_end` below, so at a retiring edge the `sof` arm WINS and re-derives
+    // from the stale decode. Measured by the full arrival sweep (cycles 40..160):
+    //     pre-repair            16/121 corrupt, in groups of FOUR consecutive cycles
+    //     fetch_owed alone       4/121 corrupt, the FIRST cycle of each group
+    //     + mem_retire_now       0/121
+    // The residual did not destroy an instruction — at a STORE's retire edge a completed store
+    // was re-issued, at a LOAD's the load was — which is why the louder criteria missed it.
+    wire      mem_retire_now = loop_end && retire &&
+                               (kind == T_STORE || kind == T_LOAD);
+    wire      stale_decode   = (fetch_owed || mem_retire_now) && !instr_avail;
 
     always @(posedge clk)
         if (!rst_n)                    fetch_owed <= 1'b0;
         else if (instr_avail)          fetch_owed <= 1'b0;
-        else if (loop_end && retire &&
-                 (kind == T_STORE || kind == T_LOAD))
-                                       fetch_owed <= 1'b1;
+        else if (mem_retire_now)       fetch_owed <= 1'b1;
 
     // ⛔ MID-LOOP `sof` TRUNCATION — the executor's residual (1), and it was REAL.
     // `sof` forced `phase` to 0 at ANY cycle while `kind`/`store_beat` only updated at
