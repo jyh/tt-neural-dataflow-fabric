@@ -176,7 +176,12 @@ metrics**, so the increase is caused by the `fetch_owed` repair in `busadapt8.v`
 build environment. The repair's own net is fanout 1; the additional violators are a placement
 consequence of one added flip-flop, not a fanout its logic demands. On **2026-09-06 the count
 clause was amended to at most three datapath violators in the 11–12 band, zero clock-leaf
-unchanged**, and this bundle meets the amended criterion. The zero-clock-leaf clause — the one
+unchanged**, and this bundle meets the amended criterion. The provenance of that amendment,
+recorded because a signoff criterion changed without one is worth less than the criterion it
+replaces: the Captain ruled *"ship (B)"* on 2026-09-06 and that ruling covered **the ship
+only**; the count clause was not put to him, and it took the helm's stated default-if-silent,
+which was the lead's own recommendation. The zero-clock-leaf clause was neither amended nor
+at issue. The zero-clock-leaf clause — the one
 that section calls the serious one — was never at issue.
 
 **Why the previous bundle carried no such note.** The 08-19 submission documents the design
