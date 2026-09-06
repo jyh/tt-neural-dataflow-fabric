@@ -131,11 +131,17 @@ DRC, LVS or antenna numbers a layout of this composition produces.
 `ndf-2a`, `src/config.json`) and no other; the 2026-08-19 submission it replaces carried no
 such note, deliberately — see the last paragraph.*
 
-**What changed, and what did not.** Exactly four LibreLane keys differ from the 08-19
+**What changed, and what did not.** Four LibreLane keys differ from the 08-19
 submission: `PL_RESIZER_HOLD_SLACK_MARGIN` 0.1 → 0.45, `GRT_RESIZER_HOLD_SLACK_MARGIN`
 0.05 → 0.3, `RSZ_CORNERS` (resizing now against the four ss/tt corners instead of `nom_tt`
-alone), and `CTS_SINK_CLUSTERING_SIZE` = 10. The RTL is byte-identical to the 08-19
-submission; `info.yaml`, the pinout, the 55 ns clock and the 6x2 tile are unchanged.
+alone), and `CTS_SINK_CLUSTERING_SIZE` = 10.
+
+⚠️ **AND THE RTL IS NO LONGER BYTE-IDENTICAL TO THE 08-19 SUBMISSION.** This sentence said it
+was, and that was true until 2026-09-06. `src/busadapt8.v` now carries the `fetch_owed` repair:
+one flip-flop and one changed `kind` assignment, closing a window in which a host `sof` pulse
+re-issued a completed memory transaction and destroyed the instruction being fetched. **That
+change is the reason every number in the table below moved.** `info.yaml`, the pinout, the 55 ns
+clock and the 6x2 tile are unchanged.
 
 **What this configuration reports at signoff, all nine STA corners, fanout limit 10:**
 
@@ -181,12 +187,12 @@ recorded because a signoff criterion changed without one is worth less than the 
 replaces: the Captain ruled *"ship (B)"* on 2026-09-06 and that ruling covered **the ship
 only**; the count clause was not put to him, and it took the helm's stated default-if-silent,
 which was the lead's own recommendation. The zero-clock-leaf clause was neither amended nor
-at issue. The zero-clock-leaf clause — the one
-that section calls the serious one — was never at issue.
+at issue — and it is the clause this section calls the serious one.
 
 **Why the previous bundle carried no such note.** The 08-19 submission documents the design
-as fabricated, in which `wire695` does not exist and the fanout count is 117. A note naming
-one accepted violator would have told a reader that the fabricated part has one; it has 117.
+as fabricated, in which none of these three violators exists and the fanout count is 117. A
+note naming three accepted violators would have told a reader that the fabricated part has
+three; it has 117.
 Artifact and evidence describe the same chip at the same time, or they do not travel
 together — so this note ships with the configuration it measures, and not before.
 
