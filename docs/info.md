@@ -29,6 +29,11 @@ whatever frame is in flight** — an in-progress memory transaction is restarted
 and a partial fetch loop is discarded — so it costs forward progress and is not
 a no-op.
 
+⚠️ **So `sof` is a recovery action, not a heartbeat.** Because a realign truncates the
+frame in flight, a host that pulses it *more often than once per 14-cycle frame* never lets a
+frame complete: forward progress stops entirely and both loads and stores go to zero. This
+follows from the two sentences above, but it is stated here rather than left to be derived.
+
 What that means in practice, and the two cases differ:
 
 - **One resync does not corrupt anything, but costs you the frame in flight.**
