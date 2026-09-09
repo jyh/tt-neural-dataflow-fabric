@@ -11,3 +11,9 @@ test/sim_build
 test/__pycache__/
 test/results.xml
 test/gate_level_netlist.v
+
+# Bytecode from the scrub gates, which run from scripts/ (not only test/).
+# The line above is path-scoped to test/, so scripts/__pycache__ was NOT covered:
+# running the gates locally left an untracked .pyc that `git add scripts` staged.
+scripts/__pycache__/
+*.pyc
